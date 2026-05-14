@@ -1,0 +1,39 @@
+export const PRODUCT_STATUS = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  DEAD: 'DEAD',
+  RISKY: 'RISKY',
+  LOW_PROFIT: 'LOW_PROFIT'
+});
+
+export const MARKETPLACE_PLATFORM = Object.freeze({
+  MEESHO: 'MEESHO',
+  AMAZON: 'AMAZON'
+});
+
+export const LISTING_STATUS = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  PAUSED: 'PAUSED',
+  DELISTED: 'DELISTED'
+});
+
+export const LISTING_HEALTH = Object.freeze({
+  HEALTHY: 'HEALTHY',
+  RISKY: 'RISKY',
+  INACTIVE: 'INACTIVE'
+});
+
+export const BUSINESS_RULES = Object.freeze({
+  MIN_PROFIT_AMOUNT: 50,
+  MIN_PROFIT_MARGIN_PERCENT: 10,
+  LOW_STOCK_THRESHOLD: 5,
+  MAX_HEALTHY_DELIVERY_DAYS: 7,
+  MIN_HEALTHY_RELIABILITY_SCORE: 60,
+  DEFAULT_MARKETPLACE_FEES: 0
+});
+
+export const SUPPLIER_SCORE_WEIGHTS = Object.freeze({
+  AVAILABILITY: 50,
+  PRICE: 30,
+  RELIABILITY: 20
+});
