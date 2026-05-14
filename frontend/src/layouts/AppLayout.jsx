@@ -20,6 +20,42 @@ const routeMeta = {
   '/listings': {
     title: 'Listings',
     subtitle: 'Connect products to marketplace listings'
+  },
+  '/automation': {
+    title: 'Automation',
+    subtitle: 'Monitor supplier sources and product changes'
+  },
+  '/automation/websites': {
+    title: 'Website Monitoring',
+    subtitle: 'Run Playwright checks against supplier URLs'
+  },
+  '/automation/telegram': {
+    title: 'Telegram Monitoring',
+    subtitle: 'Track supplier channels and extracted messages'
+  },
+  '/automation/logs': {
+    title: 'Automation Logs',
+    subtitle: 'Inspect source checks, price history, and failures'
+  },
+  '/telegram-intelligence': {
+    title: 'Telegram Intelligence',
+    subtitle: 'Human-assisted supplier crawling and confidence review'
+  },
+  '/telegram-intelligence/feed': {
+    title: 'Live Message Feed',
+    subtitle: 'Raw Telegram supplier messages before interpretation'
+  },
+  '/telegram-intelligence/review': {
+    title: 'Extraction Review',
+    subtitle: 'Verify uncertain candidates before business data changes'
+  },
+  '/telegram-intelligence/activity': {
+    title: 'Supplier Activity',
+    subtitle: 'Channel activity and recent detected supplier events'
+  },
+  '/telegram-intelligence/alerts': {
+    title: 'Low Confidence Alerts',
+    subtitle: 'Ambiguous extractions that need attention'
   }
 };
 

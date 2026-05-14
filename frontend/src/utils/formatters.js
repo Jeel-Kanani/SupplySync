@@ -12,6 +12,15 @@ export const formatCount = (value) => Number(value || 0).toLocaleString('en-IN')
 
 export const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
 
+export const formatDateTime = (value) => {
+  if (!value) return 'Never';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value));
+};
+
 export const formatProductName = (product) => {
   if (!product) return 'Not linked';
   return product.name || product.productId || 'Unnamed product';

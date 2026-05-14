@@ -1,11 +1,32 @@
 import { NavLink } from 'react-router-dom';
-import { FiBox, FiGrid, FiLayers, FiTruck } from 'react-icons/fi';
+import {
+  FiActivity,
+  FiAlertTriangle,
+  FiBox,
+  FiCheckSquare,
+  FiFileText,
+  FiGrid,
+  FiGlobe,
+  FiLayers,
+  FiRadio,
+  FiSend,
+  FiTruck
+} from 'react-icons/fi';
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: FiGrid },
   { label: 'Products', path: '/products', icon: FiBox },
   { label: 'Suppliers', path: '/suppliers', icon: FiTruck },
-  { label: 'Listings', path: '/listings', icon: FiLayers }
+  { label: 'Listings', path: '/listings', icon: FiLayers },
+  { label: 'Automation', path: '/automation', icon: FiActivity },
+  { label: 'Websites', path: '/automation/websites', icon: FiGlobe },
+  { label: 'Telegram', path: '/automation/telegram', icon: FiSend },
+  { label: 'Logs', path: '/automation/logs', icon: FiFileText },
+  { label: 'ClawBot', path: '/telegram-intelligence', icon: FiRadio },
+  { label: 'Live Feed', path: '/telegram-intelligence/feed', icon: FiSend },
+  { label: 'Review Queue', path: '/telegram-intelligence/review', icon: FiCheckSquare },
+  { label: 'Activity', path: '/telegram-intelligence/activity', icon: FiActivity },
+  { label: 'Alerts', path: '/telegram-intelligence/alerts', icon: FiAlertTriangle }
 ];
 
 export const Sidebar = ({ open, onClose }) => (
@@ -54,9 +75,9 @@ export const Sidebar = ({ open, onClose }) => (
       </nav>
 
       <div className="mt-auto rounded-lg border border-gray-800 bg-gray-900 p-4">
-        <p className="text-sm font-medium text-white">Week 2 Scope</p>
+        <p className="text-sm font-medium text-white">Week 4 Scope</p>
         <p className="mt-1 text-xs leading-5 text-gray-400">
-          CRUD management and backend integration for products, suppliers, and listings.
+          Human-in-the-loop source monitoring with confidence scoring and review.
         </p>
       </div>
     </aside>

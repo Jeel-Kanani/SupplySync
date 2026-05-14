@@ -1,102 +1,99 @@
 # SupplySync Backend
 
-Production-grade backend for SupplySync, an automated reseller monitoring and supplier intelligence platform for Meesho and Amazon resellers.
+Production backend for SupplySync, an automated reseller monitoring and supplier intelligence platform for Meesho/Amazon resellers.
 
 ## Current Scope
 
-Completed foundation:
+Week 1-3 foundation:
 
-- Express.js API server
-- MongoDB connection with Mongoose
-- Product, Supplier, and Listing models
-- REST routes and controllers
-- Centralized JSON error handling
-- Request validation
-- Service-layer architecture
-
-Week 3 adds:
-
-- Product-Supplier relationship system
-- Supplier selection engine
+- Product, Supplier, and Listing CRUD
+- Product-supplier relationship engine
+- Supplier ranking system
 - Product status engine
-- Profit calculation engine
+- Profit engine
 - Listing dependency engine
-- Business APIs for status, profit, best supplier, recalculation, and supplier rankings
 
-Not included:
+Week 4 automation:
 
-- Authentication
-- Automation or scraping
+- Playwright website monitoring
+- IndiaMART-specific website adapter
+- GramJS Telegram channel/group monitoring
+- Shared normalized product data format
+- Automation logs, source-check history, and price history
+- Source updates that trigger product recalculation and listing dependency updates
+- Node-cron website checks every 6 hours
+
+Telegram intelligence subsystem:
+
+- ClawBot GramJS listener for channels/groups
+- BullMQ + Redis message, extraction, and review queues
+- Raw Telegram message storage
+- Heuristic AI-assisted parser with reasoning and uncertainty flags
+- Price, stock, and product-name extraction engines
+- Confidence scoring with human review thresholds
+- Review tasks for ambiguous or low-confidence candidates
+- Guarded auto-confirm only for high-confidence candidates
+
+WhatsApp automation is intentionally not included.
+
+## Tech Stack
+
+- Node.js
+- Express.js
+- MongoDB + Mongoose
 - Playwright
-- Alerts or email
-- AI
-- Analytics or charts
+- node-cron
+- GramJS (`telegram`)
 
-## Architecture
-
-SupplySync is product-centric.
+## Automation Architecture
 
 ```text
-Supplier -> Product -> Listing -> Marketplace
+Source
+  -> Adapter
+  -> Normalized Product Data
+  -> Automation Data Service
+  -> MongoDB
+  -> Product Business Engine
+  -> Listing Dependency Updates
+  -> Dashboard APIs
 ```
 
-Products own the operational state. Suppliers influence product status and profit. Product state then propagates to marketplace listings.
+Every adapter returns:
 
-## Business Rules
-
-Product statuses:
-
-- `ACTIVE`: at least one available supplier with healthy profit
-- `RISKY`: supplier is available but stock, delivery, or reliability is weak
-- `DEAD`: no available supplier
-- `LOW_PROFIT`: profit or margin is below minimum threshold
-
-Supplier score:
-
-```text
-Supplier Score =
-(Availability x 50)
-+ (Price Score x 30)
-+ (Reliability x 20)
+```json
+{
+  "productName": "",
+  "supplierName": "",
+  "sourceType": "",
+  "sourceUrl": "",
+  "price": 0,
+  "availability": true,
+  "detectedAt": "",
+  "rawData": {}
+}
 ```
-
-Tie breakers:
-
-1. Lowest buy price
-2. Highest reliability score
-3. Fastest delivery
-
-Profit:
-
-```text
-Profit = Selling Price - Buy Price - Marketplace Fees
-```
-
-Listing dependency:
-
-- Dead product -> listings become `INACTIVE` with `INACTIVE` health
-- Low-profit product -> listings become `PAUSED` with `RISKY` health
-- Risky product -> listings stay `ACTIVE` with `RISKY` health
-- Active product -> listings stay `ACTIVE` with `HEALTHY` health
 
 ## Project Structure
 
 ```text
 backend/
 ├── src/
-│   ├── config/
+│   ├── automation/
+│   │   ├── adapters/
+│   │   ├── extractors/
+│   │   ├── logs/
+│   │   ├── schedulers/
+│   │   ├── scrapers/
+│   │   ├── telegram/
+│   │   └── utils/
 │   ├── controllers/
-│   ├── middleware/
 │   ├── models/
 │   ├── routes/
 │   ├── services/
-│   ├── utils/
 │   ├── validators/
 │   └── app.js
 ├── server.js
-├── .env
-├── package.json
-└── README.md
+└── package.json
 ```
 
 ## Setup
@@ -104,6 +101,7 @@ backend/
 ```bash
 cd backend
 npm install
+npx playwright install chromium
 ```
 
 `.env`:
@@ -113,7 +111,30 @@ NODE_ENV=development
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/supplysync
 CORS_ORIGIN=http://localhost:3000
+AUTOMATION_SCHEDULER_ENABLED=true
+
+TELEGRAM_API_ID=
+TELEGRAM_API_HASH=
+TELEGRAM_SESSION=
+TELEGRAM_BOT_TOKEN=
+
+TELEGRAM_INTELLIGENCE_ENABLED=true
+TELEGRAM_AUTO_APPLY_CONFIDENCE=90
+TELEGRAM_REVIEW_CONFIDENCE=70
+REDIS_URL=redis://127.0.0.1:6379
 ```
+
+Telegram can run with a bot token for bot-accessible channels/groups or a GramJS user session for broader channel monitoring. For production, generate `TELEGRAM_SESSION` outside the server and store it in environment secrets.
+
+Redis is required for the production queue path. When Redis is unavailable in development, manual message ingestion falls back to inline processing so the parser and review workflow remain testable.
+
+## Telegram Intelligence Philosophy
+
+SupplySync is a human-assisted supplier intelligence platform, not a fully autonomous reseller.
+
+The Telegram subsystem monitors noisy supplier messages, extracts possible product updates, explains why a candidate was detected, assigns confidence, and sends uncertain data to review. It does not blindly overwrite verified product data.
+
+Automation is allowed to apply product updates only when a candidate is high confidence, has a single price, has a usable product name, and does not carry major ambiguity flags. Everything else becomes a review task.
 
 ## Run
 
@@ -127,90 +148,171 @@ Health check:
 GET /api/health
 ```
 
+## Adapter System
+
+- `BaseAdapter.js`: abstract adapter contract and normalized output validation
+- `WebsiteAdapter.js`: generic supplier website scraping through Playwright
+- `IndiaMartAdapter.js`: IndiaMART-specific selectors and source type
+- `TelegramAdapter.js`: Telegram message parsing and normalization
+
+Website adapters use `baseScraper.js` for headless browser launch, isolated contexts, retries, JS rendering waits, lazy-load scrolling, timeout control, and safe closing.
+
+## Database Models
+
+- `AutomationLog`: action type, source type, status, message, execution time, metadata
+- `SourceCheckHistory`: source URL, source type, extracted normalized data, status, check time
+- `PriceHistory`: product, supplier, old price, new price, source type, change time
+- `TelegramChannel`: monitored channel/group configuration and last processed message
+
+## Scheduler
+
+- Website checks run every 6 hours through `node-cron`.
+- Telegram listeners are started at server startup when active channels and Telegram credentials exist.
+- Set `AUTOMATION_SCHEDULER_ENABLED=false` to disable scheduler startup.
+
+## Telegram Intelligence Architecture
+
+```text
+Telegram Channel/Group
+  -> ClawBot Listener
+  -> Raw TelegramMessage
+  -> BullMQ messageQueue
+  -> BullMQ extractionQueue
+  -> AI-assisted parser
+  -> Normalization engine
+  -> Confidence engine
+  -> ExtractedProductCandidate
+  -> BullMQ reviewQueue
+  -> ReviewTask
+  -> Human approval
+  -> Product business engine
+```
+
+Folder layout:
+
+```text
+src/telegram/
+├── client/
+├── listeners/
+├── parsers/
+├── normalization/
+├── confidence/
+├── queue/
+├── review/
+├── extraction/
+└── utils/
+```
+
+## Parser Logic
+
+The parser is practical and heuristic-driven:
+
+- Price extraction uses currency, unit-price, contextual, and range patterns.
+- Product-name extraction uses first-line and cleaned-segment heuristics, built-in shorthand normalization, and existing product dictionary matching.
+- Stock detection watches for available, stock, ready, instock, sold out, out of stock, and finished wording.
+- Multiple products, missing prices, short names, price ranges, and multiple price mentions create uncertainty flags.
+
+Example ambiguous message:
+
+```text
+Spider shooter 120-180
+Stock Available
+```
+
+Produces a candidate like:
+
+```json
+{
+  "normalizedName": "Spider Web Shooter",
+  "detectedPriceRange": [120, 180],
+  "confidence": 42,
+  "requiresReview": true,
+  "uncertaintyFlags": ["PRICE_RANGE"]
+}
+```
+
+## Confidence Scoring
+
+Confidence factors include:
+
+- Product-name certainty
+- Price certainty
+- Stock keyword reliability
+- Known supplier/channel
+- Structured formatting
+- Repeated channel patterns
+- Ambiguity flags
+
+Bands:
+
+- `90-100`: highly reliable
+- `70-89`: likely correct
+- `40-69`: needs review
+- `0-39`: low confidence
+
+## Review Workflow
+
+Review statuses:
+
+- `VERIFIED`
+- `NEEDS_REVIEW`
+- `LOW_CONFIDENCE`
+- `AUTO_CONFIRMED`
+- `REJECTED`
+
+Review tasks are created for ambiguous, low-confidence, or non-auto-confirmed candidates. Approval applies the candidate through the same automation data service used by Week 4, which then triggers product recalculation and listing dependency updates.
+
 ## API Endpoints
 
-Products:
+Automation:
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/products` | List products |
-| GET | `/api/products/:id` | Get product by Mongo `_id` or `productId` |
-| POST | `/api/products` | Create product |
-| PUT | `/api/products/:id` | Update product |
-| DELETE | `/api/products/:id` | Delete product and dependent listings |
-| GET | `/api/products/:id/status` | Recalculate and return product status |
-| GET | `/api/products/:id/profit` | Recalculate and return product profit |
-| GET | `/api/products/:id/best-supplier` | Recalculate and return best supplier with rankings |
-| POST | `/api/products/:id/recalculate` | Run full product business engine |
+| GET | `/api/automation/dashboard` | Automation metrics and recent extraction summary |
+| POST | `/api/automation/run-websites` | Run website checks for all supplier URLs or provided sources |
+| POST | `/api/automation/run-telegram` | Start Telegram listener or process a supplied message |
+| GET | `/api/automation/logs` | List automation logs |
+| GET | `/api/automation/history` | List source checks and recent price history |
 
-Suppliers:
+Telegram:
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/suppliers` | List suppliers |
-| POST | `/api/suppliers` | Create supplier |
-| GET | `/api/suppliers/rankings` | Global supplier ranking scores |
-| GET | `/api/suppliers/:id/products` | Products supplied by a supplier |
+| POST | `/api/telegram/connect` | Connect GramJS client using env or request credentials |
+| POST | `/api/telegram/add-channel` | Add or update a monitored Telegram channel/group |
+| GET | `/api/telegram/channels` | List monitored Telegram channels/groups |
+| GET | `/api/telegram/extractions` | List latest Telegram product extractions |
 
-Listings:
+Telegram intelligence:
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/listings` | List listings |
-| POST | `/api/listings` | Create listing and recalculate linked product |
+| POST | `/api/telegram-intelligence/runtime/start` | Start workers and ClawBot listener when configured |
+| POST | `/api/telegram-intelligence/connect` | Connect GramJS for ClawBot monitoring |
+| POST | `/api/telegram-intelligence/messages/ingest` | Queue a raw Telegram message |
+| POST | `/api/telegram-intelligence/messages/process-now` | Process a raw message inline for review/testing |
+| GET | `/api/telegram-intelligence/dashboard` | Intelligence metrics, latest messages, candidates, queue health |
+| GET | `/api/telegram-intelligence/feed` | Raw Telegram message feed |
+| GET | `/api/telegram-intelligence/candidates` | Extracted product candidates |
+| GET | `/api/telegram-intelligence/review-tasks` | Human review queue |
+| POST | `/api/telegram-intelligence/candidates/:candidateId/approve` | Verify and apply candidate |
+| POST | `/api/telegram-intelligence/candidates/:candidateId/reject` | Reject candidate |
+| GET | `/api/telegram-intelligence/supplier-activity` | Supplier/channel activity timeline |
+| GET | `/api/telegram-intelligence/low-confidence-alerts` | Ambiguous and low-confidence detections |
 
-## Example Product Payload
+Existing product/supplier/listing endpoints remain available.
 
-```json
-{
-  "productId": "PROD-1001",
-  "name": "Cotton Printed Kurti",
-  "category": "Women Fashion",
-  "description": "Printed daily wear kurti.",
-  "images": ["https://example.com/kurti.jpg"],
-  "sellingPrice": 599,
-  "suppliers": [
-    {
-      "supplier": "6650f0c1a2b3c4d5e6f78901",
-      "buyPrice": 360,
-      "isAvailable": true,
-      "stockQuantity": 24,
-      "deliveryDays": 4
-    }
-  ]
-}
-```
+## Data Update Flow
 
-## Example Listing Payload
+When automation extracts product data:
 
-```json
-{
-  "listingId": "LIST-1001",
-  "productId": "PROD-1001",
-  "platform": "MEESHO",
-  "listingUrl": "https://www.meesho.com/example-product",
-  "listingPrice": 649,
-  "marketplaceFees": 60,
-  "status": "ACTIVE"
-}
-```
+1. Save `SourceCheckHistory`
+2. Find or create the supplier
+3. Match an existing product by name/text search
+4. Update the product-supplier buy price, stock, availability, and check time
+5. Save `PriceHistory` when buy price changes
+6. Run `recalculateProduct`
+7. Existing listing dependency logic updates marketplace listing status and health
+8. Save `AutomationLog`
 
-## Response Format
-
-Success:
-
-```json
-{
-  "success": true,
-  "data": {}
-}
-```
-
-Error:
-
-```json
-{
-  "success": false,
-  "message": "Product not found"
-}
-```
+Products are not auto-created because category and selling price are business-owned fields.
