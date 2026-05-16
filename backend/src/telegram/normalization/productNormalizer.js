@@ -1,7 +1,7 @@
 import { SOURCE_TYPES } from '../../config/constants.js';
 import { normalizeNameKey, toTitleCase } from '../utils/textUtils.js';
 
-export const normalizeCandidate = (candidate, sourceMessage, confidenceResult) => {
+export const normalizeCandidate = (candidate, sourceMessage, confidenceResult, parserMeta = {}) => {
   const normalizedName =
     candidate.normalizedName ||
     toTitleCase(candidate.productName || '');
@@ -27,6 +27,14 @@ export const normalizeCandidate = (candidate, sourceMessage, confidenceResult) =
     confidence: confidenceResult.confidence,
     confidenceBand: confidenceResult.confidenceBand,
     requiresReview: confidenceResult.requiresReview,
+    parserSource: parserMeta.parserSource || candidate.parserSource || 'heuristic',
+    parserProvider: parserMeta.parserProvider || candidate.parserProvider || 'local-rules',
+    parserModel: parserMeta.parserModel || candidate.parserModel || '',
+    parserConfidence:
+      Number.isFinite(Number(candidate.parserConfidence))
+        ? Number(candidate.parserConfidence)
+        : Number(parserMeta.parserConfidence || 0),
+    parserFallbackUsed: Boolean(parserMeta.parserFallbackUsed),
     extractionReasoning: [
       ...candidate.extractionReasoning,
       ...confidenceResult.factors
@@ -35,6 +43,16 @@ export const normalizeCandidate = (candidate, sourceMessage, confidenceResult) =
     candidateData: {
       segment: candidate.segment,
       signals: candidate.signals,
+      parser: {
+        source: parserMeta.parserSource || candidate.parserSource || 'heuristic',
+        provider: parserMeta.parserProvider || candidate.parserProvider || 'local-rules',
+        model: parserMeta.parserModel || candidate.parserModel || '',
+        confidence:
+          Number.isFinite(Number(candidate.parserConfidence))
+            ? Number(candidate.parserConfidence)
+            : Number(parserMeta.parserConfidence || 0),
+        fallbackUsed: Boolean(parserMeta.parserFallbackUsed)
+      },
       rawText: sourceMessage.rawText,
       media: sourceMessage.media
     },

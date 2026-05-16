@@ -4,6 +4,16 @@ export const calculateCandidateConfidence = (candidate, context = {}) => {
   const factors = [];
   let score = 20;
 
+  if (candidate.parserSource === 'openai' && Number.isFinite(Number(candidate.parserConfidence))) {
+    const parserConfidence = Number(candidate.parserConfidence);
+    const parserBonus = Math.round((parserConfidence - 50) * 0.6);
+    score += parserBonus;
+    factors.push(`OpenAI parser confidence ${parserConfidence}% (${parserBonus >= 0 ? '+' : ''}${parserBonus})`);
+  } else if (candidate.parserSource === 'heuristic') {
+    score -= 4;
+    factors.push('Heuristic fallback parser (-4)');
+  }
+
   if (candidate.signals.productNameCertainty === 'known-exact') {
     score += 25;
     factors.push('Known product exact match (+25)');

@@ -6,7 +6,6 @@ import { env } from '../../config/env.js';
 
 let connection = null;
 let queues = null;
-let redisErrorLogged = false;
 
 export const getRedisConnection = () => {
   if (!connection) {
@@ -17,12 +16,7 @@ export const getRedisConnection = () => {
       retryStrategy: () => null
     });
 
-    connection.on('error', (error) => {
-      if (!redisErrorLogged) {
-        redisErrorLogged = true;
-        console.error('Redis connection error:', error.message);
-      }
-    });
+    connection.on('error', () => {});
   }
 
   return connection;

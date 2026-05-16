@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import mongoose from 'mongoose';
 
 import { corsOptions } from './config/env.js';
 import routes from './routes/index.js';
@@ -17,7 +18,8 @@ app.get('/api/health', (_req, res) => {
     success: true,
     data: {
       service: 'SupplySync API',
-      status: 'healthy'
+      status: mongoose.connection.readyState === 1 ? 'healthy' : 'degraded',
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     }
   });
 });

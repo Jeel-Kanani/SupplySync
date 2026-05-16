@@ -10,17 +10,16 @@ import { Loader } from '../components/Loader.jsx';
 import { Table } from '../components/Table.jsx';
 import { telegramIntelligenceService } from '../services/telegramIntelligenceService.js';
 import { formatCount, formatCurrency, formatDateTime } from '../utils/formatters.js';
-
-const emptyCredentialForm = {
-  apiId: '',
-  apiHash: '',
-  sessionString: '',
-  botToken: ''
-};
+import {
+  emptyTelegramCredentials,
+  loadTelegramCredentials,
+  normalizeTelegramCredentials,
+  saveTelegramCredentials
+} from '../utils/telegramCredentialsStorage.js';
 
 export const TelegramIntelligenceDashboardPage = () => {
   const [dashboard, setDashboard] = useState(null);
-  const [credentials, setCredentials] = useState(emptyCredentialForm);
+  const [credentials, setCredentials] = useState(emptyTelegramCredentials());
   const [sampleMessage, setSampleMessage] = useState('Spider shooter 120-180\nStock Available');
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState('');
@@ -41,12 +40,17 @@ export const TelegramIntelligenceDashboardPage = () => {
   };
 
   useEffect(() => {
+    setCredentials(loadTelegramCredentials());
     loadDashboard();
   }, []);
 
   const handleCredentialChange = (event) => {
     const { name, value } = event.target;
-    setCredentials((current) => ({ ...current, [name]: value }));
+    setCredentials((current) => {
+      const updated = { ...current, [name]: value };
+      saveTelegramCredentials(updated);
+      return updated;
+    });
   };
 
   const connectTelegram = async () => {
@@ -57,6 +61,7 @@ export const TelegramIntelligenceDashboardPage = () => {
     try {
       const result = await telegramIntelligenceService.connect(buildCredentialPayload(credentials));
       setSuccess(result.connected ? 'OpenClaw Bot connected' : 'OpenClaw Bot connection checked');
+      saveTelegramCredentials(credentials);
       await loadDashboard();
     } catch (requestError) {
       setError(requestError.message);
@@ -273,8 +278,4 @@ export const TelegramIntelligenceDashboardPage = () => {
 };
 
 const buildCredentialPayload = (credentials) =>
-  Object.fromEntries(
-    Object.entries(credentials)
-      .map(([key, value]) => [key, String(value || '').trim()])
-      .filter(([, value]) => value)
-  );
+  Object.fromEntries(Object.entries(normalizeTelegramCredentials(credentials)).filter(([, value]) => value));

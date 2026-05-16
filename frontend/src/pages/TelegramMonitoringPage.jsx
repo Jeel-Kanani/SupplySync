@@ -9,7 +9,14 @@ import { Loader } from '../components/Loader.jsx';
 import { Table } from '../components/Table.jsx';
 import { automationService } from '../services/automationService.js';
 import { telegramService } from '../services/telegramService.js';
+import { telegramIntelligenceService } from '../services/telegramIntelligenceService.js';
 import { formatCurrency, formatDateTime } from '../utils/formatters.js';
+import {
+  emptyTelegramCredentials,
+  loadTelegramCredentials,
+  normalizeTelegramCredentials,
+  saveTelegramCredentials
+} from '../utils/telegramCredentialsStorage.js';
 
 const emptyChannelForm = {
   username: '',
@@ -17,36 +24,32 @@ const emptyChannelForm = {
   title: ''
 };
 
-const emptyCredentialForm = {
-  apiId: '',
-  apiHash: '',
-  sessionString: '',
-  botToken: ''
-};
-
 export const TelegramMonitoringPage = () => {
   const [channels, setChannels] = useState([]);
   const [extractions, setExtractions] = useState([]);
   const [form, setForm] = useState(emptyChannelForm);
-  const [credentials, setCredentials] = useState(emptyCredentialForm);
+  const [credentials, setCredentials] = useState(emptyTelegramCredentials());
   const [sampleMessage, setSampleMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [runtime, setRuntime] = useState(null);
 
   const loadPage = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const [channelResponse, extractionResponse] = await Promise.all([
+      const [channelResponse, extractionResponse, dashboardResponse] = await Promise.all([
         telegramService.channels(),
-        telegramService.extractions({ limit: 30 })
+        telegramService.extractions({ limit: 30 }),
+        telegramIntelligenceService.dashboard()
       ]);
       setChannels(channelResponse || []);
       setExtractions(extractionResponse || []);
+      setRuntime(dashboardResponse?.runtime || null);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -55,6 +58,7 @@ export const TelegramMonitoringPage = () => {
   };
 
   useEffect(() => {
+    setCredentials(loadTelegramCredentials());
     loadPage();
   }, []);
 
@@ -65,7 +69,11 @@ export const TelegramMonitoringPage = () => {
 
   const handleCredentialChange = (event) => {
     const { name, value } = event.target;
-    setCredentials((current) => ({ ...current, [name]: value }));
+    setCredentials((current) => {
+      const updated = { ...current, [name]: value };
+      saveTelegramCredentials(updated);
+      return updated;
+    });
   };
 
   const addChannel = async (event) => {
@@ -98,6 +106,7 @@ export const TelegramMonitoringPage = () => {
     try {
       const result = await telegramService.connect(buildCredentialPayload(credentials));
       setSuccess(result.connected ? 'Telegram client connected' : 'Telegram connection checked');
+      saveTelegramCredentials(credentials);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -111,8 +120,8 @@ export const TelegramMonitoringPage = () => {
     setSuccess('');
 
     try {
-      const result = await automationService.runTelegram();
-      setSuccess(result.active ? 'Telegram listener started' : result.message || 'Telegram listener skipped');
+      const result = await telegramIntelligenceService.startRuntime();
+      setSuccess(result.listener?.active ? 'Telegram listener started' : result.message || 'Telegram listener skipped');
       await loadPage();
     } catch (requestError) {
       setError(requestError.message);
@@ -245,6 +254,7 @@ export const TelegramMonitoringPage = () => {
               value={credentials.apiId}
               onChange={handleCredentialChange}
               placeholder="123456"
+              disabled={Boolean(runtime?.client?.hasSession || runtime?.listener?.active)}
             />
             <FormInput
               label="API Hash"
@@ -252,6 +262,7 @@ export const TelegramMonitoringPage = () => {
               value={credentials.apiHash}
               onChange={handleCredentialChange}
               placeholder="Telegram API hash"
+              disabled={Boolean(runtime?.client?.hasSession || runtime?.listener?.active)}
             />
             <FormInput
               label="Session String"
@@ -259,6 +270,7 @@ export const TelegramMonitoringPage = () => {
               value={credentials.sessionString}
               onChange={handleCredentialChange}
               placeholder="Preferred for channel/group monitoring"
+              disabled={Boolean(runtime?.client?.hasSession || runtime?.listener?.active)}
             />
             <FormInput
               label="Bot Token"
@@ -266,14 +278,15 @@ export const TelegramMonitoringPage = () => {
               value={credentials.botToken}
               onChange={handleCredentialChange}
               placeholder="Optional bot-accessible channels"
+              disabled={Boolean(runtime?.client?.hasSession || runtime?.listener?.active)}
             />
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" onClick={connectTelegram} disabled={Boolean(running)}>
+            <Button variant="secondary" onClick={connectTelegram} disabled={Boolean(running) || Boolean(runtime?.client?.hasSession)}>
               <FiKey className="h-4 w-4" aria-hidden="true" />
               {running === 'connect' ? 'Connecting...' : 'Connect'}
             </Button>
-            <Button onClick={startListener} disabled={Boolean(running)}>
+            <Button onClick={startListener} disabled={Boolean(running) || Boolean(runtime?.listener?.active)}>
               <FiPlay className="h-4 w-4" aria-hidden="true" />
               {running === 'listener' ? 'Starting...' : 'Start Listener'}
             </Button>
@@ -334,8 +347,4 @@ export const TelegramMonitoringPage = () => {
 };
 
 const buildCredentialPayload = (credentials) =>
-  Object.fromEntries(
-    Object.entries(credentials)
-      .map(([key, value]) => [key, String(value || '').trim()])
-      .filter(([, value]) => value)
-  );
+  Object.fromEntries(Object.entries(normalizeTelegramCredentials(credentials)).filter(([, value]) => value));

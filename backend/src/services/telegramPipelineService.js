@@ -54,7 +54,7 @@ export const processExtractionForMessage = async ({ telegramMessageId }, { enque
   try {
     const productDictionary = await Product.find().select('name productId').limit(1000);
     const knownSupplier = await isKnownTelegramSupplier(telegramMessage);
-    const parsed = parseTelegramSupplierMessage(telegramMessage, {
+    const parsed = await parseTelegramSupplierMessage(telegramMessage, {
       productDictionary,
       knownSupplier
     });
@@ -78,7 +78,13 @@ export const processExtractionForMessage = async ({ telegramMessageId }, { enque
         knownSupplier,
         repeatedPattern: await hasRepeatedPattern(telegramMessage.channelName, parsedCandidate.normalizedName)
       });
-      const normalized = normalizeCandidate(parsedCandidate, telegramMessage, confidenceResult);
+      const normalized = normalizeCandidate(parsedCandidate, telegramMessage, confidenceResult, {
+        parserSource: parsed.parserSource,
+        parserProvider: parsed.parserProvider,
+        parserModel: parsed.parserModel,
+        parserConfidence: parsed.parserConfidence,
+        parserFallbackUsed: parsed.parserFallbackUsed
+      });
       const reviewStatus = getCandidateReviewStatus({
         confidence: normalized.confidence,
         requiresReview: normalized.requiresReview
@@ -90,7 +96,12 @@ export const processExtractionForMessage = async ({ telegramMessageId }, { enque
         candidateData: {
           ...normalized.candidateData,
           sourceUrl: normalized.sourceUrl,
-          parserReasoning: parsed.parserReasoning
+          parserReasoning: parsed.parserReasoning,
+          parserSource: parsed.parserSource,
+          parserProvider: parsed.parserProvider,
+          parserModel: parsed.parserModel,
+          parserFallbackUsed: parsed.parserFallbackUsed,
+          messageSignals: parsed.messageSignals
         }
       });
 

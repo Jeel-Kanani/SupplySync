@@ -42,8 +42,11 @@ export const Table = ({
           )}
 
           {!loading &&
-            data.map((row) => (
-              <tr key={row._id || row.id || row.productId || row.supplierId || row.listingId}>
+            data.map((row, rowIndex) => (
+              <tr
+                key={row._id || row.id || row.productId || row.supplierId || row.listingId || rowIndex}
+                className="transition hover:bg-gray-50"
+              >
                 {columns.map((column) => (
                   <td
                     key={column.key}
