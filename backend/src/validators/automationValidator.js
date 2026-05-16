@@ -41,7 +41,11 @@ export const validateRunTelegram = (req) => {
 
 export const validateTelegramConnect = (req) => {
   assertAllowedFields(req.body, ['apiId', 'apiHash', 'sessionString', 'botToken']);
-  assertNonNegativeNumber(req.body.apiId, 'apiId');
+
+  if (req.body.apiId !== undefined && req.body.apiId !== '') {
+    req.body.apiId = Number(req.body.apiId);
+    assertNonNegativeNumber(req.body.apiId, 'apiId');
+  }
 };
 
 export const validateAddTelegramChannel = (req) => {

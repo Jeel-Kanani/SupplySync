@@ -71,7 +71,7 @@ export const LiveTelegramFeedPage = () => {
 
       <Alert message={error} onClose={() => setError('')} />
       {loading ? <div className="rounded-lg border border-gray-200 bg-white py-16"><Loader label="Loading feed" /></div> : (
-        <Table columns={columns} data={messages} emptyTitle="No messages captured" emptyDescription="Start ClawBot or process a sample message." />
+        <Table columns={columns} data={messages} emptyTitle="No messages captured" emptyDescription="Start OpenClaw Bot or process a sample message." />
       )}
     </div>
   );

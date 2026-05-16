@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiAlertTriangle, FiCheckCircle, FiCpu, FiInbox, FiPlay, FiSend } from 'react-icons/fi';
+import { FiAlertTriangle, FiCheckCircle, FiCpu, FiInbox, FiKey, FiPlay, FiSend } from 'react-icons/fi';
 
 import { Alert } from '../components/Alert.jsx';
 import { Badge } from '../components/Badge.jsx';
@@ -11,8 +11,16 @@ import { Table } from '../components/Table.jsx';
 import { telegramIntelligenceService } from '../services/telegramIntelligenceService.js';
 import { formatCount, formatCurrency, formatDateTime } from '../utils/formatters.js';
 
+const emptyCredentialForm = {
+  apiId: '',
+  apiHash: '',
+  sessionString: '',
+  botToken: ''
+};
+
 export const TelegramIntelligenceDashboardPage = () => {
   const [dashboard, setDashboard] = useState(null);
+  const [credentials, setCredentials] = useState(emptyCredentialForm);
   const [sampleMessage, setSampleMessage] = useState('Spider shooter 120-180\nStock Available');
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState('');
@@ -36,6 +44,27 @@ export const TelegramIntelligenceDashboardPage = () => {
     loadDashboard();
   }, []);
 
+  const handleCredentialChange = (event) => {
+    const { name, value } = event.target;
+    setCredentials((current) => ({ ...current, [name]: value }));
+  };
+
+  const connectTelegram = async () => {
+    setRunning('connect');
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await telegramIntelligenceService.connect(buildCredentialPayload(credentials));
+      setSuccess(result.connected ? 'OpenClaw Bot connected' : 'OpenClaw Bot connection checked');
+      await loadDashboard();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setRunning('');
+    }
+  };
+
   const startRuntime = async () => {
     setRunning('runtime');
     setError('');
@@ -43,7 +72,7 @@ export const TelegramIntelligenceDashboardPage = () => {
 
     try {
       const result = await telegramIntelligenceService.startRuntime();
-      setSuccess(result.listener?.active ? 'ClawBot listener started' : result.listener?.message || 'Runtime checked');
+      setSuccess(result.listener?.active ? 'OpenClaw Bot listener started' : result.listener?.message || 'Runtime checked');
       await loadDashboard();
     } catch (requestError) {
       setError(requestError.message);
@@ -122,12 +151,49 @@ export const TelegramIntelligenceDashboardPage = () => {
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-950">ClawBot Runtime</h2>
+              <h2 className="text-base font-semibold text-gray-950">OpenClaw Bot Runtime</h2>
               <p className="text-sm text-gray-500">Human-in-the-loop supplier intelligence for Telegram sources.</p>
             </div>
             <Button onClick={startRuntime} disabled={Boolean(running)}>
               <FiPlay className="h-4 w-4" aria-hidden="true" />
               {running === 'runtime' ? 'Starting...' : 'Start Runtime'}
+            </Button>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <FormInput
+              label="API ID"
+              name="apiId"
+              type="number"
+              value={credentials.apiId}
+              onChange={handleCredentialChange}
+              placeholder="123456"
+            />
+            <FormInput
+              label="API Hash"
+              name="apiHash"
+              value={credentials.apiHash}
+              onChange={handleCredentialChange}
+              placeholder="Telegram API hash"
+            />
+            <FormInput
+              label="Session String"
+              name="sessionString"
+              value={credentials.sessionString}
+              onChange={handleCredentialChange}
+              placeholder="Preferred for supplier channels/groups"
+            />
+            <FormInput
+              label="Bot Token"
+              name="botToken"
+              value={credentials.botToken}
+              onChange={handleCredentialChange}
+              placeholder="Optional bot-accessible channels"
+            />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button variant="secondary" onClick={connectTelegram} disabled={Boolean(running)}>
+              <FiKey className="h-4 w-4" aria-hidden="true" />
+              {running === 'connect' ? 'Connecting...' : 'Connect'}
             </Button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -205,3 +271,10 @@ export const TelegramIntelligenceDashboardPage = () => {
     </div>
   );
 };
+
+const buildCredentialPayload = (credentials) =>
+  Object.fromEntries(
+    Object.entries(credentials)
+      .map(([key, value]) => [key, String(value || '').trim()])
+      .filter(([, value]) => value)
+  );

@@ -34,7 +34,7 @@ export const connectTelegram = async (credentials = {}) => {
 
   return {
     connected: data.connected,
-    sessionString: data.sessionString
+    hasSession: Boolean(data.sessionString)
   };
 };
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiPlay, FiPlus, FiSend } from 'react-icons/fi';
+import { FiKey, FiPlay, FiPlus } from 'react-icons/fi';
 
 import { Alert } from '../components/Alert.jsx';
 import { Badge } from '../components/Badge.jsx';
@@ -17,10 +17,18 @@ const emptyChannelForm = {
   title: ''
 };
 
+const emptyCredentialForm = {
+  apiId: '',
+  apiHash: '',
+  sessionString: '',
+  botToken: ''
+};
+
 export const TelegramMonitoringPage = () => {
   const [channels, setChannels] = useState([]);
   const [extractions, setExtractions] = useState([]);
   const [form, setForm] = useState(emptyChannelForm);
+  const [credentials, setCredentials] = useState(emptyCredentialForm);
   const [sampleMessage, setSampleMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,6 +63,11 @@ export const TelegramMonitoringPage = () => {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
+  const handleCredentialChange = (event) => {
+    const { name, value } = event.target;
+    setCredentials((current) => ({ ...current, [name]: value }));
+  };
+
   const addChannel = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -83,8 +96,8 @@ export const TelegramMonitoringPage = () => {
     setSuccess('');
 
     try {
-      await telegramService.connect();
-      setSuccess('Telegram client connected');
+      const result = await telegramService.connect(buildCredentialPayload(credentials));
+      setSuccess(result.connected ? 'Telegram client connected' : 'Telegram connection checked');
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -218,9 +231,46 @@ export const TelegramMonitoringPage = () => {
         </form>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap justify-end gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-gray-950">Telegram Connection</h2>
+            <p className="text-sm text-gray-500">
+              GramJS needs API ID, API hash, and either a saved user session or bot token.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <FormInput
+              label="API ID"
+              name="apiId"
+              type="number"
+              value={credentials.apiId}
+              onChange={handleCredentialChange}
+              placeholder="123456"
+            />
+            <FormInput
+              label="API Hash"
+              name="apiHash"
+              value={credentials.apiHash}
+              onChange={handleCredentialChange}
+              placeholder="Telegram API hash"
+            />
+            <FormInput
+              label="Session String"
+              name="sessionString"
+              value={credentials.sessionString}
+              onChange={handleCredentialChange}
+              placeholder="Preferred for channel/group monitoring"
+            />
+            <FormInput
+              label="Bot Token"
+              name="botToken"
+              value={credentials.botToken}
+              onChange={handleCredentialChange}
+              placeholder="Optional bot-accessible channels"
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={connectTelegram} disabled={Boolean(running)}>
-              <FiSend className="h-4 w-4" aria-hidden="true" />
+              <FiKey className="h-4 w-4" aria-hidden="true" />
               {running === 'connect' ? 'Connecting...' : 'Connect'}
             </Button>
             <Button onClick={startListener} disabled={Boolean(running)}>
@@ -235,7 +285,7 @@ export const TelegramMonitoringPage = () => {
               as="textarea"
               value={sampleMessage}
               onChange={(event) => setSampleMessage(event.target.value)}
-              placeholder="Spider Web Shooter ₹120&#10;Stock Available"
+              placeholder="Spider Web Shooter INR 120&#10;Stock Available"
             />
             <div className="flex justify-end">
               <Button type="submit" variant="secondary" disabled={!sampleMessage.trim() || Boolean(running)}>
@@ -282,3 +332,10 @@ export const TelegramMonitoringPage = () => {
     </div>
   );
 };
+
+const buildCredentialPayload = (credentials) =>
+  Object.fromEntries(
+    Object.entries(credentials)
+      .map(([key, value]) => [key, String(value || '').trim()])
+      .filter(([, value]) => value)
+  );

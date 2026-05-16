@@ -7,7 +7,11 @@ import {
 
 export const validateClawBotConnect = (req) => {
   assertAllowedFields(req.body, ['apiId', 'apiHash', 'sessionString', 'botToken']);
-  assertNonNegativeNumber(req.body.apiId, 'apiId');
+
+  if (req.body.apiId !== undefined && req.body.apiId !== '') {
+    req.body.apiId = Number(req.body.apiId);
+    assertNonNegativeNumber(req.body.apiId, 'apiId');
+  }
 };
 
 export const validateTelegramMessageIngest = (req) => {

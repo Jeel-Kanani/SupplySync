@@ -25,7 +25,7 @@ Week 4 automation:
 
 Telegram intelligence subsystem:
 
-- ClawBot GramJS listener for channels/groups
+- OpenClaw Bot GramJS listener for channels/groups
 - BullMQ + Redis message, extraction, and review queues
 - Raw Telegram message storage
 - Heuristic AI-assisted parser with reasoning and uncertainty flags
@@ -174,7 +174,7 @@ Website adapters use `baseScraper.js` for headless browser launch, isolated cont
 
 ```text
 Telegram Channel/Group
-  -> ClawBot Listener
+  -> OpenClaw Bot Listener
   -> Raw TelegramMessage
   -> BullMQ messageQueue
   -> BullMQ extractionQueue
@@ -287,8 +287,8 @@ Telegram intelligence:
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| POST | `/api/telegram-intelligence/runtime/start` | Start workers and ClawBot listener when configured |
-| POST | `/api/telegram-intelligence/connect` | Connect GramJS for ClawBot monitoring |
+| POST | `/api/telegram-intelligence/runtime/start` | Start workers and OpenClaw Bot listener when configured |
+| POST | `/api/telegram-intelligence/connect` | Connect GramJS for OpenClaw Bot monitoring |
 | POST | `/api/telegram-intelligence/messages/ingest` | Queue a raw Telegram message |
 | POST | `/api/telegram-intelligence/messages/process-now` | Process a raw message inline for review/testing |
 | GET | `/api/telegram-intelligence/dashboard` | Intelligence metrics, latest messages, candidates, queue health |

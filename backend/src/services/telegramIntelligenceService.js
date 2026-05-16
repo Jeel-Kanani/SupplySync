@@ -73,7 +73,7 @@ export const connectIntelligenceTelegram = async (credentials = {}) => {
 
   return {
     connected: connection.connected,
-    sessionString: connection.sessionString
+    hasSession: Boolean(connection.sessionString)
   };
 };
 

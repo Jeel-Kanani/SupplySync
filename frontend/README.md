@@ -105,7 +105,7 @@ npm run build
 | `/automation/websites` | Website monitoring |
 | `/automation/telegram` | Telegram monitoring |
 | `/automation/logs` | Automation logs |
-| `/telegram-intelligence` | ClawBot intelligence dashboard |
+| `/telegram-intelligence` | OpenClaw Bot intelligence dashboard |
 | `/telegram-intelligence/feed` | Live Telegram message feed |
 | `/telegram-intelligence/review` | Extraction review queue |
 | `/telegram-intelligence/activity` | Supplier activity timeline |
@@ -153,7 +153,7 @@ Week 4 automation:
 
 Telegram intelligence:
 
-- Start the ClawBot runtime
+- Start the OpenClaw Bot runtime
 - Process sample messages through the same extraction pipeline
 - Inspect raw messages before interpretation
 - Review candidates with confidence, reasoning, and uncertainty flags

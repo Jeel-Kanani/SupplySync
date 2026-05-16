@@ -22,7 +22,7 @@ const navItems = [
   { label: 'Websites', path: '/automation/websites', icon: FiGlobe },
   { label: 'Telegram', path: '/automation/telegram', icon: FiSend },
   { label: 'Logs', path: '/automation/logs', icon: FiFileText },
-  { label: 'ClawBot', path: '/telegram-intelligence', icon: FiRadio },
+  { label: 'OpenClaw', path: '/telegram-intelligence', icon: FiRadio },
   { label: 'Live Feed', path: '/telegram-intelligence/feed', icon: FiSend },
   { label: 'Review Queue', path: '/telegram-intelligence/review', icon: FiCheckSquare },
   { label: 'Activity', path: '/telegram-intelligence/activity', icon: FiActivity },

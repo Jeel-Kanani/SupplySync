@@ -6,17 +6,22 @@ import { env } from '../../config/env.js';
 
 let connection = null;
 let queues = null;
+let redisErrorLogged = false;
 
 export const getRedisConnection = () => {
   if (!connection) {
     connection = new IORedis(env.redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      lazyConnect: true
+      lazyConnect: true,
+      retryStrategy: () => null
     });
 
     connection.on('error', (error) => {
-      console.error('Redis connection error:', error.message);
+      if (!redisErrorLogged) {
+        redisErrorLogged = true;
+        console.error('Redis connection error:', error.message);
+      }
     });
   }
 
